@@ -1,17 +1,18 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import Header from './Header'
 import { jsPDF } from "jspdf";
-import { generatePath } from 'react-router-dom';
-import { FC, ReactNode } from "react";
-import { ConnectionProvider, useConnection, useWallet, WalletProvider } from '@solana/wallet-adapter-react';
-import { clusterApiUrl } from "@solana/web3.js";
+import { useConnection, useWallet} from '@solana/wallet-adapter-react';
 import "@solana/wallet-adapter-react-ui/styles.css";
-import {WalletModalProvider, WalletDisconnectButton, WalletMultiButton} from '@solana/wallet-adapter-react-ui';
+import { WalletMultiButton} from '@solana/wallet-adapter-react-ui';
+import { getDocument, GlobalWorkerOptions, version } from 'pdfjs-dist';
+import Worker from '../pdfWorker.js?worker'; // ✅ this gives you the default export: a Worker class
+
 
 
 function Invoice() {
     const { connection } = useConnection();
     const { publicKey } = useWallet();
+    const [text, setText] = useState('');
     const [formData, setFormData] = useState({
       fromName: "",
       toName: "",
@@ -19,9 +20,10 @@ function Invoice() {
       dueDate: "",
       description: "",
       fromSolAddress: "",
-      toSolAddress: "",
+      totalAmt: "",
       logo: "",
     })
+    // GlobalWorkerOptions.workerSrc = pdfWorker;
 
     useEffect(() => {
         if (!connection || !publicKey) {
@@ -75,16 +77,43 @@ function Invoice() {
         doc.text(`${formData.invoiceDate}`, 161, 79);
         doc.text(`${formData.dueDate}`, 161, 87);
         doc.text(formData.description || "Description goes here", 27, 132);
+
         
         doc.setFontSize(11)
         doc.text(`${publicKey}`, 105, 112);
-        doc.text(`${formData.toSolAddress}`, 105, 128);
+        doc.text(`${formData.totalAmt} SOL`, 105, 128);
         doc.save("invoice.pdf");
   };
 };  
 
 
+  const readPDF =(e)=>{
+    console.log("here")
+    const file = e.target.files[0];
+    if (!file || file.type !== 'application/pdf') return;
+    console.log("found file");
 
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const typedArray = new Uint8Array(reader.result);
+      const pdf = await getDocument({
+    data: typedArray,
+    worker: new Worker(), // ✅ instantiate the worker
+  }).promise;
+      let fullText = '';
+
+       for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        const pageText = content.items.map(item => item.str).join(' ');
+        fullText += pageText + '\n\n';
+      }
+      setText(fullText);
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
+  
   
 
 
@@ -195,13 +224,13 @@ function Invoice() {
 
                  <div className='flex flex-col w-2xl items-start text-white'>
                     <p className='py-2 text-xl'>
-                        To Sol address: 
+                        Total Sol Amount: 
                     </p>
                     <input
                       type="text"
-                      name="toSolAddress"
+                      name="totalAmt"
                       onChange={handleChange}
-                      placeholder="Recipient's public key"
+                      placeholder="Total Amount in SOL"
                       className="bg-[#d9d9d936] text-white w-full rounded-md p-3"
                       />
                 </div>
@@ -220,7 +249,11 @@ function Invoice() {
           
 
           {/* Generate Invoice Button */}
-          <div className="flex justify-end my-7">
+          <div className="flex justify-end my-7 gap-10">
+           <input type="file" id="pdfInput" accept="application/pdf" style={{display: "none"}} onChange={(e) => readPDF(e)}/>
+            <label htmlFor="pdfInput" className="bg-[#70798c] hover:bg-[#5a606e] text-white rounded-md p-4 font-bold">
+              Send Payment
+            </label>
             <button
             onClick={() => generatePDF(formData)}
               type="button"
