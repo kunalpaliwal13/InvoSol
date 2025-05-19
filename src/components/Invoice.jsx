@@ -5,14 +5,15 @@ import { useConnection, useWallet} from '@solana/wallet-adapter-react';
 import "@solana/wallet-adapter-react-ui/styles.css";
 import { WalletMultiButton} from '@solana/wallet-adapter-react-ui';
 import { getDocument, GlobalWorkerOptions, version } from 'pdfjs-dist';
-import Worker from '../pdfWorker.js?worker'; // ✅ this gives you the default export: a Worker class
+import { Keypair, SystemProgram, Transaction, LAMPORTS_PER_SOL } from '@solana/web3.js';
 
+GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${version}/pdf.worker.min.js`;
 
 
 function Invoice() {
     const { connection } = useConnection();
-    const { publicKey } = useWallet();
-    const [text, setText] = useState('');
+    const { publicKey, sendTransaction } = useWallet();
+    const [uploadedImage, setUploadedImage] = useState(null);
     const [formData, setFormData] = useState({
       fromName: "",
       toName: "",
@@ -46,10 +47,14 @@ function Invoice() {
     }));};
 
     const handleFileChange = (e) => {
-    setFormData((prevState) => ({
-      ...prevState,
-      logo: e.target.files[0],
-    }));};
+    const file = e.target.files[0];
+    if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        setUploadedImage(reader.result); // Data URL (base64)
+      };
+      reader.readAsDataURL(file);
+    };   
 
     const generateInvoiceNumber = () => {
       const now = new Date();
@@ -68,6 +73,11 @@ function Invoice() {
       img.onload = () => {
         
         doc.addImage(img, "JPEG", 0, 0, 210, 297); 
+
+        //logo
+        if (uploadedImage) {
+           doc.addImage(uploadedImage, "PNG", 25, 40, 20, 20); // x, y, width, height
+        }
       
         // Now overlay formData
         doc.setFontSize(14);
@@ -87,28 +97,55 @@ function Invoice() {
 };  
 
 
+  
+  
+
+
   const readPDF =(e)=>{
-    console.log("here")
     const file = e.target.files[0];
     if (!file || file.type !== 'application/pdf') return;
+
     console.log("found file");
 
     const reader = new FileReader();
+
     reader.onload = async () => {
       const typedArray = new Uint8Array(reader.result);
-      const pdf = await getDocument({
-    data: typedArray,
-    worker: new Worker(), // ✅ instantiate the worker
-  }).promise;
-      let fullText = '';
 
-       for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
+    
+      
+      try{
+        const pdf = await getDocument({data: typedArray}).promise;
+        const page = await pdf.getPage(1);
         const content = await page.getTextContent();
-        const pageText = content.items.map(item => item.str).join(' ');
-        fullText += pageText + '\n\n';
-      }
-      setText(fullText);
+        const sendTo = content.items[7].str;
+        const amt = content.items[8].str
+        const match = amt.match(/[\d.]+/);
+
+
+        const amount = parseFloat(match[0]);  
+        console.log(`amt ${amount}`);  
+
+        // console.log(content.items[7].str);
+
+        const lamports = amount * LAMPORTS_PER_SOL;
+        console.log(lamports);
+        
+        const transaction = new Transaction().add(SystemProgram.transfer({
+          fromPubkey: publicKey,
+          toPubkey: sendTo,
+          lamports,}));
+    
+        const {
+          context: { slot: minContextSlot },
+          value: { blockhash, lastValidBlockHeight }
+        } = await connection.getLatestBlockhashAndContext();
+
+        const signature = await sendTransaction(transaction, connection, { minContextSlot });
+        await connection.confirmTransaction({ blockhash, lastValidBlockHeight, signature });
+        alert("Transaction Successful !");
+        e.target.value = '';
+      }catch(e){alert("There was some error, please try later.");console.error(e);}
     };
     reader.readAsArrayBuffer(file);
   };
