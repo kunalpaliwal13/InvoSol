@@ -1,12 +1,61 @@
-# React + Vite
+Live Link: https://invo-sol.vercel.app/
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+#InvoSol
+A decentralized web app built with **React** and **Vite** that enables users to generate invoices and accept payments using the Solana blockchain.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 🚀 Features
 
-## Expanding the ESLint configuration
+- Create and manage professional invoices
+- Generate unique Solana payment requests per invoice
+- Modern UI powered by React + Vite
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+---
+
+## Tech Stack
+
+- **Frontend:** React + Vite  
+- **Blockchain:** Solana (using `@solana/web3.js` and wallet adapters)
+
+
+## 📁 Project Structure
+```
+/invoice-generator
+├── /src
+│ ├── components
+│ ├── hooks
+│ ├── utils
+│ └── App.jsx
+├── index.html
+├── package.json
+└── vite.config.js
+```
+
+## Setup & Run
+
+1. Clone the repo:
+   ```bash
+   git clone https://github.com/kunalpaliwal13/InvoSol.git
+   cd InvoSol
+   ```
+2. Install dependencies and run:
+```
+   npm install
+   npm run dev
+
+```
+
+3. Open your browser at:
+   ```
+   http://localhost:5173
+   ```
+
+SnapShots: 
+![image](https://github.com/user-attachments/assets/7c856990-7005-4ca6-b62e-0e45a63b7a70)<br>
+
+![image](https://github.com/user-attachments/assets/f21b35c3-ab6c-475c-8b95-7999f0c9357a)<br>
+
+![image](https://github.com/user-attachments/assets/b8ba5dfd-82f3-41ad-a069-fed85fa0e911)<br>
+
+   
